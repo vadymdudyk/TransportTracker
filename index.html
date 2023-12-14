@@ -1,0 +1,313 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Transport - Tracker</title>
+  <link rel="stylesheet" href="styles.css">
+
+  <style>
+  </style>
+</head>
+<body>
+    <header class="fade-in">
+        Transport - Tracker
+    </header>
+
+  <div id="map-container" class="fade-in">
+    <div id="map"></div>
+    <button id="routes-button" class="button" onclick="toggleDropdown()">Маршрути</button>
+    <button id="location-button" class="button" onclick="showCurrentLocation()">Моє місцезнаходження</button>
+    <button id="cancel-filter-button" class="button" onclick="cancelFilter()">Скасувати фільтр</button>
+    <div id="routes-dropdown" class="fade-in"></div>
+</div>
+<div id="routes" class="fade-in"></div>
+
+  <script>
+    const mapData = {
+      center: { lat: 49.8429, lng: 24.0311 },
+      zoom: 12
+    };
+
+    const routesData = [
+      { id: 1, name: 'Маршрутка №51', type: 'Маршрутка', points: [
+        { name: '1', lat: 49.861595, lng: 24.018779 },
+        { name: '2', lat: 49.844108, lng: 24.025700 },
+      ] },
+      
+      { id: 2, name: 'Трамвай №1', type: 'Трамвай', points: [
+        { name: '1', lat: 49.836619, lng: 24.022114 },
+        { name: '2', lat: 49.834766, lng: 24.008662 },
+        { name: '2', lat: 49.839313, lng: 23.996022 },
+      ] },
+
+      { id: 3, name: 'Тролейбус №10', type: 'Тролейбус', points: [
+        { name: '1', lat: 49.858473, lng: 24.025803 },
+        { name: '2', lat: 49.853876, lng: 24.027396 },
+      ] },
+      
+      { id: 4, name: 'Автобус №25', type: 'Автобус', points: [
+        { name: '1', lat: 49.832722, lng: 24.030532 },
+        { name: '2', lat: 49.834552, lng: 24.015798 },
+      ] },
+
+      { id: 5, name: 'Маршрутка №37', type: 'Маршрутка', points: [
+        { name: '1', lat: 49.870049, lng: 24.008600 },
+        { name: '2', lat: 49.853463, lng: 24.023305 },
+        { name: '3', lat: 49.841343, lng: 24.035614 },
+        { name: '4', lat: 49.832021, lng: 24.041723 },
+      ] },
+      
+      { id: 6, name: 'Маршрутка №7', type: 'Маршрутка', points: [
+        { name: '1', lat: 49.869551, lng: 24.025226 },
+        { name: '2', lat: 49.816557, lng: 23.986537 },
+        { name: '3', lat: 49.797888, lng: 24.051045 },
+        { name: '4', lat: 49.842813, lng: 24.018869 },
+      ] },
+
+      { id: 7, name: 'Маршрутка №21', type: 'Маршрутка', points: [
+        { name: '1', lat: 49.860345, lng: 24.080233 },
+        { name: '2', lat: 49.816557, lng: 23.986537 },
+        { name: '3', lat: 49.883811, lng: 24.041347 },
+        { name: '4', lat: 49.889006, lng: 24.045810 },
+      ] },
+
+      { id: 8, name: 'Трамвай №2', type: 'Трамвай', points: [
+        { name: '1', lat: 49.829671, lng: 24.015496 },
+        { name: '2', lat: 49.825318, lng: 24.030958 },
+        { name: '3', lat: 49.819671, lng: 24.045496 },
+      ] },
+
+      { id: 9, name: 'Трамвай №3', type: 'Трамвай', points: [
+        { name: '1', lat: 49.850672, lng: 24.021322 },
+        { name: '2', lat: 49.856122, lng: 24.024759 },
+        { name: '3', lat: 49.861345, lng: 24.028733 },
+      ] },
+
+      { id: 10, name: 'Трамвай №4', type: 'Трамвай', points: [
+        { name: '1', lat: 49.860135, lng: 24.026084 },
+        { name: '2', lat: 49.865421, lng: 24.030421 },
+        { name: '3', lat: 49.870634, lng: 24.034884 },
+      ] },
+
+      { id: 11, name: 'Маршрутка №31', type: 'Маршрутка', points: [
+        { name: '1', lat: 49.850726, lng: 24.040112 },
+        { name: '2', lat: 49.856122, lng: 24.094759 },
+        { name: '3', lat: 49.921271, lng: 24.088862 },
+        { name: '4', lat: 49.902193, lng: 24.072273 },
+      ] },
+
+      { id: 12, name: 'Тролейбус №33', type: 'Тролейбус', points: [
+        { name: '1', lat: 49.829671, lng: 24.015496 },
+        { name: '2', lat: 49.825318, lng: 24.030958 },
+        { name: '3', lat: 49.931821, lng: 24.097536 },
+        { name: '4', lat: 49.845726, lng: 24.020112 },
+      ] },
+      
+    ];
+
+    let map;
+    let markers = {};
+    let isTransportVisible = { bus: false, tram: false, trolleybus: false };
+    let selectedTransport = null;
+    let selectedRoute = null;
+
+    function initMap() {
+      map = new google.maps.Map(document.getElementById('map'), {
+        center: mapData.center,
+        zoom: mapData.zoom
+      });
+    }
+
+    function toggleDropdown() {
+      const dropdown = document.getElementById('routes-dropdown');
+      if (dropdown.style.display === 'block') {
+        dropdown.style.display = 'none';
+      } else {
+        if (!selectedTransport) {
+          populateTransportDropdown();
+        } else if (!selectedRoute) {
+          populateRoutesDropdown();
+        } else {
+          selectedTransport = null;
+          selectedRoute = null;
+          clearMarkers();
+        }
+        dropdown.style.display = 'block';
+      }
+    }
+
+    function populateTransportDropdown() {
+      const dropdown = document.getElementById('routes-dropdown');
+      dropdown.innerHTML = '';
+
+      const transportTypes = [...new Set(routesData.map(route => route.type))];
+      transportTypes.forEach(type => {
+        const transportLink = document.createElement('a');
+        transportLink.textContent = type;
+        transportLink.onclick = () => selectTransport(type);
+        dropdown.appendChild(transportLink);
+      });
+    }
+
+    function selectTransport(type) {
+      selectedTransport = type;
+      populateRoutesDropdown();
+    }
+
+    function populateRoutesDropdown() {
+      const dropdown = document.getElementById('routes-dropdown');
+      dropdown.innerHTML = '';
+
+      const routesOfType = routesData.filter(route => route.type === selectedTransport);
+      routesOfType.forEach(route => {
+        const routeLink = document.createElement('a');
+        routeLink.textContent = route.name;
+        routeLink.onclick = () => selectRoute(route);
+        dropdown.appendChild(routeLink);
+      });
+    }
+
+    function selectRoute(route) {
+      selectedRoute = route;
+      showTransport(selectedTransport);
+      document.getElementById('cancel-filter-button').style.display = 'block'; // Показуємо кнопку "Скасувати фільтр"
+    }
+
+    function toggleTransport(type) {
+      if (isTransportVisible[type]) {
+        clearMarkers(type);
+        isTransportVisible[type] = false;
+      } else {
+        showTransport(type);
+        isTransportVisible[type] = true;
+      }
+    }
+
+    function showTransport(type) {
+      clearMarkers();
+
+      markers[type] = [];
+
+      const filteredRoutes = routesData.filter(route => route.type === type);
+      filteredRoutes.forEach(route => {
+        if (selectedRoute && route.id === selectedRoute.id) {
+          showRouteInfo(route);
+        } else if (!selectedRoute) {
+          showRouteInfo(route);
+        }
+      });
+    }
+
+    function showRouteInfo(route) {
+      route.points.forEach(point => {
+        const marker = new google.maps.Marker({
+          position: { lat: point.lat, lng: point.lng },
+          map: map,
+          title: point.name,
+          icon: {
+            url: getMarkerIcon(route.type),
+            scaledSize: new google.maps.Size(30, 30)
+          }
+        });
+        markers[route.type].push(marker);
+      });
+    }
+
+    function clearMarkers(type) {
+      if (type) {
+        markers[type].forEach(marker => marker.setMap(null));
+        markers[type] = [];
+      } else {
+        Object.keys(markers).forEach(key => {
+          markers[key].forEach(marker => marker.setMap(null));
+        });
+        markers = {};
+      }
+    }
+
+    function getMarkerIcon(type) {
+      switch (type) {
+        case 'Маршрутка':
+          return 'https://img.icons8.com/ios-filled/50/bus.png';
+        case 'Трамвай':
+          return 'https://img.icons8.com/ios-filled/50/tram.png';
+        case 'Тролейбус':
+          return 'https://img.icons8.com/ios-filled/50/trolleybus.png';
+        case 'Автобус':
+          return 'https://img.icons8.com/ios-filled/50/bus.png';
+        default:
+          return 'https://img.icons8.com/ios-filled/50/bus.png';
+      }
+    }
+
+    function showCurrentLocation() {
+      if (navigator.geolocation) {
+        navigator.geolocation.getCurrentPosition(
+          position => {
+            const userLocation = {
+              lat: position.coords.latitude,
+              lng: position.coords.longitude
+            };
+            map.setCenter(userLocation);
+            const userMarker = new google.maps.Marker({
+              position: userLocation,
+              map: map,
+              title: 'Ваше місцезнаходження',
+              icon: {
+                url: 'https://img.icons8.com/ios-filled/50/map-pin.png',
+                scaledSize: new google.maps.Size(30, 30)
+              }
+            });
+            markers['user'] = [userMarker];
+          },
+          error => {
+            console.error(error.message);
+          }
+        );
+      } else {
+        alert('Геолокація не підтримується вашим браузером.');
+      }
+    }
+    function toggleDropdown() {
+    const dropdown = document.getElementById('routes-dropdown');
+    const cancelFilterButton = document.getElementById('cancel-filter-button');
+
+    if (dropdown.style.display === 'block') {
+      dropdown.style.display = 'none';
+      cancelFilterButton.style.display = 'none';
+    } else {
+      if (!selectedTransport) {
+        populateTransportDropdown();
+        cancelFilterButton.style.display = 'none';
+      } else if (!selectedRoute) {
+        populateRoutesDropdown();
+        cancelFilterButton.style.display = 'none';
+      } else {
+        selectedTransport = null;
+        selectedRoute = null;
+        clearMarkers();
+        cancelFilterButton.style.display = 'block'; // Показуємо кнопку "Скасувати фільтр"
+      }
+      dropdown.style.display = 'block';
+    }
+  }
+
+  function cancelFilter() {
+      selectedTransport = null;
+      selectedRoute = null;
+      clearMarkers();
+      document.getElementById('routes-dropdown').style.display = 'none';
+      document.getElementById('cancel-filter-button').style.display = 'none';
+    }
+  </script>
+
+  <footer>
+    @DudykCorporation
+  </footer>
+
+  <script async defer
+    src="https://maps.googleapis.com/maps/api/js?key=AIzaSyC5otTxq06u5OM5txa8zIeK3omeroM9qiQ&callback=initMap">
+  </script>
+</body>
+</html>
